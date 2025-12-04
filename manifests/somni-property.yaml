@@ -123,7 +123,7 @@ metadata:
     app: somni-property
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: network-authelia-auth@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: network-authelia@kubernetescrd
     cert-manager.io/cluster-issuer: letsencrypt-production
 spec:
   ingressClassName: traefik
@@ -167,7 +167,7 @@ metadata:
     app: somni-property
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: network-authelia-auth@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: network-authelia@kubernetescrd
 spec:
   ingressClassName: traefik
   tls:
