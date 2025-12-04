@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  somni-property:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: somni-property:latest
+    container_name: somni-property
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.somni-property.rule=Host(`property.home.lan`)"
+      - "traefik.http.routers.somni-property.entrypoints=websecure"
+      - "traefik.http.routers.somni-property.tls=true"
+      - "traefik.http.services.somni-property.loadbalancer.server.port=80"
+
+  # Development server with hot reload (optional)
+  somni-property-dev:
+    image: ghcr.io/cirruslabs/flutter:3.24.5
+    container_name: somni-property-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+      - flutter_pub_cache:/root/.pub-cache
+    ports:
+      - "3000:3000"
+    command: flutter run -d web-server --web-port 3000 --web-hostname 0.0.0.0
+    profiles:
+      - dev
+
+volumes:
+  flutter_pub_cache:

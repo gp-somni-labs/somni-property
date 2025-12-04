@@ -1,0 +1,249 @@
+---
+# Namespace (uses existing 'business' namespace from SomniCluster)
+# apiVersion: v1
+# kind: Namespace
+# metadata:
+#   name: business
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: somni-property
+  namespace: business
+  labels:
+    app: somni-property
+    app.kubernetes.io/name: somni-property
+    app.kubernetes.io/component: frontend
+    app.kubernetes.io/part-of: somni-platform
+    app.kubernetes.io/managed-by: argocd
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: somni-property
+  template:
+    metadata:
+      labels:
+        app: somni-property
+        app.kubernetes.io/name: somni-property
+    spec:
+      containers:
+        - name: somni-property
+          image: ghcr.io/gp-somni-labs/somni-property:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 101  # nginx user
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+            - name: nginx-run
+              mountPath: /var/run
+      volumes:
+        - name: nginx-cache
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: somni-property-svc
+  namespace: business
+  labels:
+    app: somni-property
+spec:
+  type: ClusterIP
+  selector:
+    app: somni-property
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      protocol: TCP
+
+---
+# Ingress - 3-Zone Access (LAN, Tailscale, Public)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: somni-property-ingress
+  namespace: business
+  labels:
+    app: somni-property
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: network-authelia-auth@kubernetescrd
+    cert-manager.io/cluster-issuer: letsencrypt-production
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - property.home.lan
+        - property.somni-labs.tech
+      secretName: somni-property-tls
+  rules:
+    # Zone 1: Local LAN
+    - host: property.home.lan
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: somni-property-svc
+                port:
+                  number: 80
+    # Zone 3: Public (via Cloudflare Tunnel)
+    - host: property.somni-labs.tech
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: somni-property-svc
+                port:
+                  number: 80
+
+---
+# Tailscale Ingress (Zone 2: VPN)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: somni-property-tailscale
+  namespace: business
+  labels:
+    app: somni-property
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.middlewares: network-authelia-auth@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - property.tail58c8e4.ts.net
+      secretName: somni-property-tailscale-tls
+  rules:
+    - host: property.tail58c8e4.ts.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: somni-property-svc
+                port:
+                  number: 80
+
+---
+# Network Policy - Allow ingress from Traefik only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: somni-property-netpol
+  namespace: business
+spec:
+  podSelector:
+    matchLabels:
+      app: somni-property
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 80
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow connections to Authelia for OIDC
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: network
+          podSelector:
+            matchLabels:
+              app: authelia
+      ports:
+        - protocol: TCP
+          port: 9091
+
+---
+# HorizontalPodAutoscaler (optional)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: somni-property-hpa
+  namespace: business
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: somni-property
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
