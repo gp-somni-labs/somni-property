@@ -1,29 +1,53 @@
 import 'package:flutter/foundation.dart';
+import 'oidc_config_stub.dart' if (dart.library.html) 'oidc_config_web.dart';
+
+/// Access zone enumeration for 3-zone networking
+enum AccessZone {
+  /// Local LAN access (home.lan)
+  lan,
+  /// Tailscale VPN access (tail58c8e4.ts.net)
+  tailscale,
+  /// Public internet access (somni-labs.tech)
+  public,
+}
 
 /// OIDC Configuration for Authelia SSO
 ///
-/// This configuration supports multiple environments:
-/// - VPN (Tailscale): Uses internal auth.home.lan
-/// - Public: Uses auth.somni-labs.tech
-/// - Tailscale direct: Uses auth.tail58c8e4.ts.net
+/// This configuration supports multiple environments (3-zone access):
+/// - Zone 1 (LAN): Uses auth.home.lan / property.home.lan
+/// - Zone 2 (Tailscale): Uses auth.tail58c8e4.ts.net / property.tail58c8e4.ts.net
+/// - Zone 3 (Public): Uses auth.somni-labs.tech / property.somni-labs.tech
 class OidcConfig {
   OidcConfig._();
 
   // Client Configuration
   static const String clientId = 'somni-property';
 
-  // Authelia OIDC Endpoints (base URLs)
+  // Domain mappings for each zone
+  static const Map<AccessZone, String> _authDomains = {
+    AccessZone.lan: 'auth.home.lan',
+    AccessZone.tailscale: 'auth.tail58c8e4.ts.net',
+    AccessZone.public: 'auth.somni-labs.tech',
+  };
+
+  static const Map<AccessZone, String> _appDomains = {
+    AccessZone.lan: 'property.home.lan',
+    AccessZone.tailscale: 'property.tail58c8e4.ts.net',
+    AccessZone.public: 'property.somni-labs.tech',
+  };
+
+  // Authelia OIDC Endpoints (base URLs) - kept for backwards compatibility
   static const String issuerVpn = 'https://auth.home.lan';
   static const String issuerPublic = 'https://auth.somni-labs.tech';
   static const String issuerTailscale = 'https://auth.tail58c8e4.ts.net';
 
-  // Redirect URIs - Web/Desktop focused for property management
-  static const String redirectUriWeb = 'https://property.home.lan/auth/callback';
+  // Redirect URIs - kept for backwards compatibility
+  static const String redirectUriWebLan = 'https://property.home.lan/auth/callback';
+  static const String redirectUriWebTailscale = 'https://property.tail58c8e4.ts.net/auth/callback';
   static const String redirectUriWebPublic = 'https://property.somni-labs.tech/auth/callback';
   static const String redirectUriDesktop = 'somniproperty://auth/callback';
 
-  // Post-logout redirect
-  static const String postLogoutRedirectWeb = 'https://property.home.lan';
+  // Post-logout redirects
   static const String postLogoutRedirectDesktop = 'somniproperty://auth/logout';
 
   // Scopes requested from Authelia
@@ -38,31 +62,97 @@ class OidcConfig {
   // PKCE Configuration
   static const bool usePkce = true;
 
-  /// Get the appropriate issuer based on network status
+  /// Cached access zone (determined once at startup)
+  static AccessZone? _cachedZone;
+
+  /// Detect the current access zone based on the browser's host
+  static AccessZone detectAccessZone() {
+    if (_cachedZone != null) return _cachedZone!;
+
+    if (kIsWeb) {
+      try {
+        // Get the current host from the browser window
+        final host = _getCurrentHost();
+        debugPrint('OIDC: Detected host: $host');
+
+        if (host.contains('home.lan')) {
+          _cachedZone = AccessZone.lan;
+        } else if (host.contains('ts.net') || host.contains('tailscale')) {
+          _cachedZone = AccessZone.tailscale;
+        } else if (host.contains('somni-labs.tech')) {
+          _cachedZone = AccessZone.public;
+        } else {
+          // Default to public for unknown hosts (including localhost)
+          debugPrint('OIDC: Unknown host "$host", defaulting to public zone');
+          _cachedZone = AccessZone.public;
+        }
+      } catch (e) {
+        debugPrint('OIDC: Error detecting zone: $e, defaulting to public');
+        _cachedZone = AccessZone.public;
+      }
+    } else {
+      // Desktop app - default to LAN (assume local network)
+      _cachedZone = AccessZone.lan;
+    }
+
+    debugPrint('OIDC: Access zone detected: ${_cachedZone!.name}');
+    return _cachedZone!;
+  }
+
+  /// Get the current host from the browser (web only)
+  static String _getCurrentHost() {
+    if (kIsWeb) {
+      // Use conditional import to access window.location.host
+      return getWebHost();
+    }
+    return '';
+  }
+
+  /// Get the issuer URL for the detected zone
+  static String getIssuerForZone(AccessZone zone) {
+    return 'https://${_authDomains[zone]}';
+  }
+
+  /// Get the redirect URI for the detected zone
+  static String getRedirectUriForZone(AccessZone zone) {
+    if (!kIsWeb) {
+      return redirectUriDesktop;
+    }
+    return 'https://${_appDomains[zone]}/auth/callback';
+  }
+
+  /// Get the post-logout redirect URI for the detected zone
+  static String getPostLogoutRedirectUriForZone(AccessZone zone) {
+    if (!kIsWeb) {
+      return postLogoutRedirectDesktop;
+    }
+    return 'https://${_appDomains[zone]}';
+  }
+
+  /// Get the appropriate issuer based on network status (backwards compatible)
+  /// @deprecated Use getIssuerForZone with detectAccessZone() instead
   static String getIssuer({required bool isVpnConnected}) {
-    if (isVpnConnected) {
-      return issuerVpn;
-    }
-    return issuerPublic;
+    // Use zone detection for more accurate results
+    final zone = detectAccessZone();
+    return getIssuerForZone(zone);
   }
 
-  /// Get the appropriate redirect URI based on platform
+  /// Get the appropriate redirect URI based on platform and current zone
   static String getRedirectUri() {
-    if (kIsWeb) {
-      // For web, use the web callback URL
-      // In production, this should match the deployed URL
-      return redirectUriWeb;
+    if (!kIsWeb) {
+      return redirectUriDesktop;
     }
-    // Desktop uses custom URL scheme
-    return redirectUriDesktop;
+    final zone = detectAccessZone();
+    return getRedirectUriForZone(zone);
   }
 
-  /// Get the post-logout redirect URI based on platform
+  /// Get the post-logout redirect URI based on platform and current zone
   static String getPostLogoutRedirectUri() {
-    if (kIsWeb) {
-      return postLogoutRedirectWeb;
+    if (!kIsWeb) {
+      return postLogoutRedirectDesktop;
     }
-    return postLogoutRedirectDesktop;
+    final zone = detectAccessZone();
+    return getPostLogoutRedirectUriForZone(zone);
   }
 
   /// Build authorization endpoint
