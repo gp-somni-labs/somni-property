@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:somni_property/features/auth/presentation/bloc/auth_provider.dart';
 import 'package:somni_property/features/auth/presentation/pages/login_page.dart';
 import 'package:somni_property/features/dashboard/presentation/pages/dashboard_page.dart';
+import 'package:somni_property/features/properties/presentation/pages/properties_list_page.dart';
+import 'package:somni_property/features/properties/presentation/pages/property_detail_page.dart';
+import 'package:somni_property/features/properties/presentation/pages/property_form_page.dart';
 
 /// Router provider for web-compatible navigation
 final routerProvider = Provider<GoRouter>((ref) {
@@ -56,16 +59,33 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/properties',
             name: 'properties',
-            builder: (context, state) => const PropertiesPlaceholderPage(),
+            builder: (context, state) => const PropertiesListPage(),
             routes: [
+              // New Property
+              GoRoute(
+                path: 'new',
+                name: 'propertyNew',
+                builder: (context, state) => const PropertyFormPage(),
+              ),
               // Property Detail
               GoRoute(
                 path: ':id',
                 name: 'propertyDetail',
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  return PropertyDetailPlaceholderPage(propertyId: id);
+                  return PropertyDetailPage(propertyId: id);
                 },
+                routes: [
+                  // Edit Property
+                  GoRoute(
+                    path: 'edit',
+                    name: 'propertyEdit',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return PropertyFormPage(propertyId: id);
+                    },
+                  ),
+                ],
               ),
             ],
           ),
@@ -252,36 +272,6 @@ class AppShell extends ConsumerWidget {
 }
 
 // Placeholder pages - to be implemented
-
-class PropertiesPlaceholderPage extends StatelessWidget {
-  const PropertiesPlaceholderPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Properties')),
-      body: const Center(child: Text('Properties list coming soon')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-}
-
-class PropertyDetailPlaceholderPage extends StatelessWidget {
-  final String propertyId;
-
-  const PropertyDetailPlaceholderPage({super.key, required this.propertyId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Property $propertyId')),
-      body: Center(child: Text('Property detail for $propertyId')),
-    );
-  }
-}
 
 class TenantsPlaceholderPage extends StatelessWidget {
   const TenantsPlaceholderPage({super.key});
