@@ -204,11 +204,11 @@ spec:
     - Ingress
     - Egress
   ingress:
-    # Allow from Traefik (LAN and public zones)
+    # Allow from Traefik (runs in kube-system)
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: network
+              kubernetes.io/metadata.name: kube-system
           podSelector:
             matchLabels:
               app.kubernetes.io/name: traefik
@@ -233,7 +233,7 @@ spec:
       ports:
         - protocol: UDP
           port: 53
-    # Allow connections to Authelia for OIDC
+    # Allow connections to Authelia for OIDC (in network namespace)
     - to:
         - namespaceSelector:
             matchLabels:
