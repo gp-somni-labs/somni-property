@@ -43,8 +43,9 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 /// Provider for OIDC DataSource
+/// Uses platform-specific implementation (web uses redirect flow, native uses flutter_appauth)
 final oidcDataSourceProvider = Provider<OidcDataSource>((ref) {
-  return OidcDataSourceImpl();
+  return createOidcDataSource();
 });
 
 /// Auth state notifier

@@ -6,9 +6,9 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API Configuration - SomniProperty Backend
-  // Tailscale VPN endpoint (primary)
+  // Tailscale VPN endpoint (primary) - MUST use HTTPS to avoid mixed content errors
   static const String tailscaleBaseUrl =
-      'http://somni-somni-ai-edge-1.tail58c8e4.ts.net';
+      'https://property.tail58c8e4.ts.net';
   // LAN endpoint (for on-site use)
   static const String localBaseUrl = 'https://property.home.lan';
   // Public endpoint (fallback)
@@ -89,9 +89,8 @@ class MinioConstants {
 
   // Internal cluster endpoint
   static const String endpoint = 'minio.storage.svc.cluster.local';
-  // Tailscale VPN endpoint
-  static const String tailscaleEndpoint =
-      'somni-somni-ai-edge-1.tail58c8e4.ts.net/minio';
+  // Tailscale VPN endpoint - MUST use HTTPS to avoid mixed content errors
+  static const String tailscaleEndpoint = 'minio.tail58c8e4.ts.net';
   // LAN endpoint
   static const String lanEndpoint = 'minio.home.lan';
   static const int port = 9000;

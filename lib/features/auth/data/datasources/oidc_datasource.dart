@@ -6,6 +6,10 @@ import 'package:somni_property/core/config/oidc_config.dart';
 import 'package:somni_property/core/errors/exceptions.dart';
 import 'package:somni_property/features/auth/data/models/user_model.dart';
 
+// Conditional import for platform-specific OIDC implementation
+export 'oidc_datasource_stub.dart'
+    if (dart.library.html) 'oidc_datasource_web.dart';
+
 /// OIDC Data Source for Authelia SSO authentication
 ///
 /// Implements the Authorization Code flow with PKCE for secure authentication

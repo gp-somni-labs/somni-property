@@ -70,6 +70,13 @@ class NetworkInfoImpl implements NetworkInfo {
 
   @override
   Future<bool> get isVpnConnected async {
+    // On web, skip VPN check entirely - zone is detected from browser URL
+    // This avoids mixed content errors and unnecessary network requests
+    if (kIsWeb) {
+      debugPrint('VPN status: skipped on web (zone detected from URL)');
+      return false;
+    }
+
     // Check cache first
     if (_cachedVpnStatus != null && _lastVpnCheck != null) {
       final elapsed = DateTime.now().difference(_lastVpnCheck!);
