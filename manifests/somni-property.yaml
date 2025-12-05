@@ -130,8 +130,10 @@ spec:
   tls:
     - hosts:
         - property.home.lan
+      secretName: wildcard-home-lan-tls
+    - hosts:
         - property.somni-labs.tech
-      secretName: somni-property-tls
+      secretName: wildcard-somni-labs-tech-tls
   rules:
     # Zone 1: Local LAN
     - host: property.home.lan
@@ -165,15 +167,16 @@ metadata:
   namespace: business
   labels:
     app: somni-property
+    zone: vpn
   annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: websecure
-    traefik.ingress.kubernetes.io/router.middlewares: network-authelia@kubernetescrd
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: property
+    tailscale.com/tags: tag:k8s
 spec:
-  ingressClassName: traefik
+  ingressClassName: tailscale
   tls:
     - hosts:
         - property.tail58c8e4.ts.net
-      secretName: somni-property-tailscale-tls
   rules:
     - host: property.tail58c8e4.ts.net
       http:
@@ -201,6 +204,7 @@ spec:
     - Ingress
     - Egress
   ingress:
+    # Allow from Traefik (LAN and public zones)
     - from:
         - namespaceSelector:
             matchLabels:
@@ -208,6 +212,14 @@ spec:
           podSelector:
             matchLabels:
               app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 80
+    # Allow from Tailscale ingress (VPN zone)
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tailscale
       ports:
         - protocol: TCP
           port: 80
