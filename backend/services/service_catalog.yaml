@@ -1,0 +1,215 @@
+# Service Catalog - Available services for Tier 1/2 deployment
+# Each service can be one-click deployed to client K3s clusters via GitOps
+
+services:
+  - id: portainer
+    name: Portainer
+    category: management
+    description: Container management UI with full Docker/Kubernetes support
+    tiers: [tier_1, tier_2]
+    manifest_template: portainer.yaml.j2
+    default_namespace: management
+    resource_requirements:
+      cpu_request: "100m"
+      cpu_limit: "500m"
+      memory_request: "256Mi"
+      memory_limit: "512Mi"
+    ingress_required: true
+    default_port: 9000
+    icon_url: https://portainer.io/favicon.ico
+    documentation_url: https://docs.portainer.io
+
+  - id: grafana
+    name: Grafana
+    category: monitoring
+    description: Analytics and monitoring dashboards for metrics visualization
+    tiers: [tier_1, tier_2]
+    manifest_template: grafana.yaml.j2
+    default_namespace: monitoring
+    resource_requirements:
+      cpu_request: "200m"
+      cpu_limit: "1000m"
+      memory_request: "512Mi"
+      memory_limit: "1Gi"
+    ingress_required: true
+    default_port: 3000
+    icon_url: https://grafana.com/favicon.ico
+    documentation_url: https://grafana.com/docs
+
+  - id: frigate
+    name: Frigate
+    category: security
+    description: NVR with AI object detection for security cameras
+    tiers: [tier_1, tier_2]
+    manifest_template: frigate.yaml.j2
+    default_namespace: security
+    resource_requirements:
+      cpu_request: "500m"
+      cpu_limit: "2000m"
+      memory_request: "1Gi"
+      memory_limit: "2Gi"
+    ingress_required: true
+    default_port: 5000
+    icon_url: https://frigate.video/favicon.ico
+    documentation_url: https://docs.frigate.video
+    requires_gpu: false
+    requires_storage: true
+    storage_size: "100Gi"
+
+  - id: scrypted
+    name: Scrypted
+    category: security
+    description: Video integration platform for cameras and doorbells
+    tiers: [tier_1, tier_2]
+    manifest_template: scrypted.yaml.j2
+    default_namespace: security
+    resource_requirements:
+      cpu_request: "500m"
+      cpu_limit: "2000m"
+      memory_request: "1Gi"
+      memory_limit: "2Gi"
+    ingress_required: true
+    default_port: 11080
+    icon_url: https://www.scrypted.app/favicon.ico
+    documentation_url: https://docs.scrypted.app
+    requires_storage: true
+    storage_size: "50Gi"
+
+  - id: zigbee2mqtt
+    name: Zigbee2MQTT
+    category: iot
+    description: Zigbee to MQTT bridge for smart home devices
+    tiers: [tier_1, tier_2]
+    manifest_template: zigbee2mqtt.yaml.j2
+    default_namespace: iot
+    resource_requirements:
+      cpu_request: "100m"
+      cpu_limit: "500m"
+      memory_request: "256Mi"
+      memory_limit: "512Mi"
+    ingress_required: true
+    default_port: 8080
+    icon_url: https://www.zigbee2mqtt.io/favicon.ico
+    documentation_url: https://www.zigbee2mqtt.io
+    requires_usb_device: true
+    usb_device_path: /dev/ttyUSB0
+
+  - id: prometheus
+    name: Prometheus
+    category: monitoring
+    description: Time-series database for metrics collection and alerting
+    tiers: [tier_1, tier_2]
+    manifest_template: prometheus.yaml.j2
+    default_namespace: monitoring
+    resource_requirements:
+      cpu_request: "500m"
+      cpu_limit: "2000m"
+      memory_request: "2Gi"
+      memory_limit: "4Gi"
+    ingress_required: true
+    default_port: 9090
+    icon_url: https://prometheus.io/favicon.ico
+    documentation_url: https://prometheus.io/docs
+    requires_storage: true
+    storage_size: "50Gi"
+
+  - id: node-red
+    name: Node-RED
+    category: automation
+    description: Flow-based programming for event-driven automation
+    tiers: [tier_1, tier_2]
+    manifest_template: node-red.yaml.j2
+    default_namespace: automation
+    resource_requirements:
+      cpu_request: "100m"
+      cpu_limit: "500m"
+      memory_request: "256Mi"
+      memory_limit: "512Mi"
+    ingress_required: true
+    default_port: 1880
+    icon_url: https://nodered.org/favicon.ico
+    documentation_url: https://nodered.org/docs
+
+  - id: uptime-kuma
+    name: Uptime Kuma
+    category: monitoring
+    description: Self-hosted monitoring tool for uptime and status pages
+    tiers: [tier_1, tier_2]
+    manifest_template: uptime-kuma.yaml.j2
+    default_namespace: monitoring
+    resource_requirements:
+      cpu_request: "100m"
+      cpu_limit: "500m"
+      memory_request: "256Mi"
+      memory_limit: "512Mi"
+    ingress_required: true
+    default_port: 3001
+    icon_url: https://uptime.kuma.pet/favicon.ico
+    documentation_url: https://github.com/louislam/uptime-kuma
+
+  - id: homepage
+    name: Homepage
+    category: dashboard
+    description: Customizable application dashboard and launcher
+    tiers: [tier_1, tier_2]
+    manifest_template: homepage.yaml.j2
+    default_namespace: dashboard
+    resource_requirements:
+      cpu_request: "50m"
+      cpu_limit: "200m"
+      memory_request: "128Mi"
+      memory_limit: "256Mi"
+    ingress_required: true
+    default_port: 3000
+    icon_url: https://gethomepage.dev/favicon.ico
+    documentation_url: https://gethomepage.dev
+
+  - id: mqtt-broker
+    name: EMQX MQTT Broker
+    category: iot
+    description: Scalable MQTT broker for IoT device messaging
+    tiers: [tier_1, tier_2]
+    manifest_template: mqtt-broker.yaml.j2
+    default_namespace: iot
+    resource_requirements:
+      cpu_request: "200m"
+      cpu_limit: "1000m"
+      memory_request: "512Mi"
+      memory_limit: "1Gi"
+    ingress_required: true
+    default_port: 18083
+    mqtt_port: 1883
+    icon_url: https://www.emqx.io/favicon.ico
+    documentation_url: https://www.emqx.io/docs
+
+# Categories for filtering and organization
+categories:
+  - id: management
+    name: Management
+    description: Container and cluster management tools
+    icon: server
+
+  - id: monitoring
+    name: Monitoring
+    description: System and application monitoring tools
+    icon: activity
+
+  - id: security
+    name: Security
+    description: Video surveillance and security systems
+    icon: shield
+
+  - id: iot
+    name: IoT & Automation
+    description: Smart home and IoT integration tools
+    icon: cpu
+
+  - id: automation
+    name: Automation
+    description: Event-driven automation and workflow tools
+    icon: zap
+
+  - id: dashboard
+    name: Dashboards
+    description: Application dashboards and status pages
+    icon: layout

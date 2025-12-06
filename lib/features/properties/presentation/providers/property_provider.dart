@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:somni_property/core/network/api_client.dart';
 import 'package:somni_property/features/properties/data/datasources/property_local_datasource.dart';
+import 'package:somni_property/features/properties/data/datasources/property_remote_datasource.dart';
 import 'package:somni_property/features/properties/data/repositories/property_repository_impl.dart';
 import 'package:somni_property/features/properties/domain/entities/property.dart';
 import 'package:somni_property/features/properties/domain/repositories/property_repository.dart';
@@ -10,10 +12,23 @@ final propertyLocalDataSourceProvider = Provider<PropertyLocalDataSource>((ref) 
   return PropertyLocalDataSourceImpl();
 });
 
+/// Provider for PropertyRemoteDataSource
+final propertyRemoteDataSourceProvider = Provider<PropertyRemoteDataSource>((ref) {
+  return PropertyRemoteDataSourceImpl(
+    apiClient: ref.watch(apiClientProvider),
+  );
+});
+
+/// Provider to control whether to use remote API or mock data
+/// Set to true to connect to production backend
+const bool _useRemoteApi = true; // Change to false for development with mock data
+
 /// Provider for PropertyRepository
 final propertyRepositoryProvider = Provider<PropertyRepository>((ref) {
   return PropertyRepositoryImpl(
     localDataSource: ref.watch(propertyLocalDataSourceProvider),
+    remoteDataSource: ref.watch(propertyRemoteDataSourceProvider),
+    useRemoteApi: _useRemoteApi,
   );
 });
 

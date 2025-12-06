@@ -1,0 +1,149 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ namespace }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: frigate-media
+  namespace: {{ namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ storage_size | default('100Gi') }}
+  storageClassName: {{ storage_class | default('local-path') }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frigate-config
+  namespace: {{ namespace }}
+data:
+  config.yml: |
+    mqtt:
+      host: {{ mqtt_host | default('mqtt-broker.iot.svc.cluster.local') }}
+      port: {{ mqtt_port | default('1883') }}
+
+    detectors:
+      cpu1:
+        type: cpu
+
+    cameras:
+      # Add cameras via UI or update ConfigMap
+      dummy:
+        enabled: False
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frigate
+  namespace: {{ namespace }}
+  labels:
+    app: frigate
+    managed-by: somniproperty
+    client-id: "{{ client_id }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frigate
+  template:
+    metadata:
+      labels:
+        app: frigate
+    spec:
+      containers:
+      - name: frigate
+        image: ghcr.io/blakeblackshear/frigate:stable
+        ports:
+        - containerPort: 5000
+          name: http
+        - containerPort: 8554
+          name: rtsp
+        - containerPort: 8555
+          name: webrtc-tcp
+        - containerPort: 8555
+          protocol: UDP
+          name: webrtc-udp
+        env:
+        - name: FRIGATE_RTSP_PASSWORD
+          value: "{{ rtsp_password | default('changeme') }}"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: media
+          mountPath: /media/frigate
+        - name: shm
+          mountPath: /dev/shm
+        resources:
+          requests:
+            cpu: {{ cpu_request | default('500m') }}
+            memory: {{ memory_request | default('1Gi') }}
+          limits:
+            cpu: {{ cpu_limit | default('2000m') }}
+            memory: {{ memory_limit | default('2Gi') }}
+        securityContext:
+          privileged: {{ privileged | default('false') }}
+      volumes:
+      - name: config
+        configMap:
+          name: frigate-config
+      - name: media
+        persistentVolumeClaim:
+          claimName: frigate-media
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frigate
+  namespace: {{ namespace }}
+spec:
+  selector:
+    app: frigate
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000
+  - name: rtsp
+    port: 8554
+    targetPort: 8554
+  - name: webrtc-tcp
+    port: 8555
+    targetPort: 8555
+    protocol: TCP
+  - name: webrtc-udp
+    port: 8555
+    targetPort: 8555
+    protocol: UDP
+{% if ingress_enabled %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frigate
+  namespace: {{ namespace }}
+  annotations:
+    {% for key, value in ingress_annotations.items() %}
+    {{ key }}: "{{ value }}"
+    {% endfor %}
+spec:
+  rules:
+  - host: {{ ingress_hostname | default('frigate.' + client_domain) }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frigate
+            port:
+              number: 5000
+{% endif %}

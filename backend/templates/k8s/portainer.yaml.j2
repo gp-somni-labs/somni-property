@@ -1,0 +1,100 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ namespace }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: portainer-data
+  namespace: {{ namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: {{ storage_class | default('local-path') }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portainer
+  namespace: {{ namespace }}
+  labels:
+    app: portainer
+    managed-by: somniproperty
+    client-id: "{{ client_id }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portainer
+  template:
+    metadata:
+      labels:
+        app: portainer
+    spec:
+      containers:
+      - name: portainer
+        image: portainer/portainer-ce:latest
+        ports:
+        - containerPort: 9000
+          name: http
+        - containerPort: 8000
+          name: edge
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            cpu: {{ cpu_request | default('100m') }}
+            memory: {{ memory_request | default('256Mi') }}
+          limits:
+            cpu: {{ cpu_limit | default('500m') }}
+            memory: {{ memory_limit | default('512Mi') }}
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: portainer-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portainer
+  namespace: {{ namespace }}
+spec:
+  selector:
+    app: portainer
+  ports:
+  - name: http
+    port: 9000
+    targetPort: 9000
+  - name: edge
+    port: 8000
+    targetPort: 8000
+{% if ingress_enabled %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: portainer
+  namespace: {{ namespace }}
+  annotations:
+    {% for key, value in ingress_annotations.items() %}
+    {{ key }}: "{{ value }}"
+    {% endfor %}
+spec:
+  rules:
+  - host: {{ ingress_hostname | default('portainer.' + client_domain) }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: portainer
+            port:
+              number: 9000
+{% endif %}

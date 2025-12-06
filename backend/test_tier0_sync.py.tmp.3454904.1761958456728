@@ -1,0 +1,364 @@
+#!/usr/bin/env python3
+"""
+Test Tier 0 Device Sync
+
+This script simulates a Tier 0 (Standalone) Home Assistant instance
+syncing its devices to the SomniProperty Master Hub.
+
+Usage:
+    python test_tier0_sync.py --hub-id <tier-0-node-uuid>
+
+Or to test with a real registered Tier 0 node:
+    python test_tier0_sync.py --find-first
+
+This will:
+1. Send mock Home Assistant devices to the sync API
+2. Display the sync response
+3. Query the database to verify devices were created
+"""
+
+import asyncio
+import argparse
+import httpx
+from datetime import datetime
+import uuid
+from db.database import AsyncSessionLocal
+from db.models import PropertyEdgeNode, SmartDevice
+
+# Mock Home Assistant devices (simulating what the HA integration would send)
+MOCK_HA_DEVICES = [
+    {
+        "entity_id": "light.living_room",
+        "name": "Living Room Light",
+        "device_type": "smart_bulb",
+        "manufacturer": "Philips",
+        "model": "Hue White and Color",
+        "ha_domain": "light",
+        "ha_state": "on",
+        "ha_attributes": {
+            "brightness": 255,
+            "color_temp": 370,
+            "supported_features": 63
+        },
+        "location": "Living Room",
+        "battery_level": None,
+        "signal_strength": -45
+    },
+    {
+        "entity_id": "sensor.bedroom_temperature",
+        "name": "Bedroom Temperature",
+        "device_type": "sensor",
+        "manufacturer": "Xiaomi",
+        "model": "Aqara Temperature Sensor",
+        "ha_domain": "sensor",
+        "ha_state": "21.5",
+        "ha_attributes": {
+            "unit_of_measurement": "°C",
+            "device_class": "temperature",
+            "state_class": "measurement"
+        },
+        "location": "Bedroom",
+        "battery_level": 95,
+        "signal_strength": -60
+    },
+    {
+        "entity_id": "switch.bedroom_fan",
+        "name": "Bedroom Fan",
+        "device_type": "smart_plug",
+        "manufacturer": "TP-Link",
+        "model": "Kasa Smart Plug",
+        "ha_domain": "switch",
+        "ha_state": "off",
+        "ha_attributes": {
+            "current_power_w": 0,
+            "today_energy_kwh": 0.5
+        },
+        "location": "Bedroom",
+        "battery_level": None,
+        "signal_strength": -50
+    },
+    {
+        "entity_id": "binary_sensor.front_door",
+        "name": "Front Door Sensor",
+        "device_type": "sensor",
+        "manufacturer": "Xiaomi",
+        "model": "Aqara Door/Window Sensor",
+        "ha_domain": "binary_sensor",
+        "ha_state": "off",
+        "ha_attributes": {
+            "device_class": "door"
+        },
+        "location": "Front Door",
+        "battery_level": 87,
+        "signal_strength": -55
+    },
+    {
+        "entity_id": "climate.living_room_ac",
+        "name": "Living Room AC",
+        "device_type": "thermostat",
+        "manufacturer": "Sensibo",
+        "model": "Sky",
+        "ha_domain": "climate",
+        "ha_state": "cool",
+        "ha_attributes": {
+            "temperature": 24,
+            "current_temperature": 26,
+            "hvac_modes": ["off", "cool", "heat", "fan_only"],
+            "fan_mode": "high"
+        },
+        "location": "Living Room",
+        "battery_level": None,
+        "signal_strength": -40
+    },
+    {
+        "entity_id": "lock.front_door",
+        "name": "Front Door Lock",
+        "device_type": "smart_lock",
+        "manufacturer": "Yale",
+        "model": "Assure Lock SL",
+        "ha_domain": "lock",
+        "ha_state": "locked",
+        "ha_attributes": {
+            "battery_low": False
+        },
+        "location": "Front Door",
+        "battery_level": 78,
+        "signal_strength": -48
+    },
+    {
+        "entity_id": "camera.driveway",
+        "name": "Driveway Camera",
+        "device_type": "camera",
+        "manufacturer": "Reolink",
+        "model": "RLC-410",
+        "ha_domain": "camera",
+        "ha_state": "recording",
+        "ha_attributes": {
+            "access_token": "hidden",
+            "frontend_stream_type": "hls"
+        },
+        "location": "Driveway",
+        "battery_level": None,
+        "signal_strength": -52
+    },
+    {
+        "entity_id": "sensor.energy_meter",
+        "name": "House Energy Meter",
+        "device_type": "sensor",
+        "manufacturer": "Shelly",
+        "model": "EM",
+        "ha_domain": "sensor",
+        "ha_state": "2500",
+        "ha_attributes": {
+            "unit_of_measurement": "W",
+            "device_class": "power",
+            "state_class": "measurement"
+        },
+        "location": "Utility Room",
+        "battery_level": None,
+        "signal_strength": -35
+    },
+    {
+        "entity_id": "light.bedroom_lamp",
+        "name": "Bedroom Lamp",
+        "device_type": "smart_bulb",
+        "manufacturer": "IKEA",
+        "model": "TRADFRI",
+        "ha_domain": "light",
+        "ha_state": "off",
+        "ha_attributes": {
+            "brightness": 0,
+            "color_temp": 400
+        },
+        "location": "Bedroom",
+        "battery_level": None,
+        "signal_strength": -58
+    },
+    {
+        "entity_id": "sensor.kitchen_motion",
+        "name": "Kitchen Motion Sensor",
+        "device_type": "sensor",
+        "manufacturer": "Philips",
+        "model": "Hue Motion Sensor",
+        "ha_domain": "binary_sensor",
+        "ha_state": "off",
+        "ha_attributes": {
+            "device_class": "motion"
+        },
+        "location": "Kitchen",
+        "battery_level": 92,
+        "signal_strength": -42
+    }
+]
+
+
+async def find_first_tier0_node():
+    """Find the first Tier 0 node in the database"""
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            "SELECT id, hostname FROM property_edge_nodes WHERE hub_type = 'tier_0_standalone' LIMIT 1"
+        )
+        row = result.first()
+        if row:
+            return str(row[0]), row[1]
+        return None, None
+
+
+async def send_sync_request(hub_id: str, base_url: str = "http://localhost:8000"):
+    """Send device sync request to Master Hub"""
+
+    print("=" * 70)
+    print("🔄 Testing Tier 0 Device Sync")
+    print("=" * 70)
+    print()
+    print(f"Hub ID: {hub_id}")
+    print(f"Master Hub URL: {base_url}")
+    print(f"Devices to sync: {len(MOCK_HA_DEVICES)}")
+    print()
+
+    payload = {"devices": MOCK_HA_DEVICES}
+
+    headers = {
+        "X-Hub-ID": hub_id,
+        "Content-Type": "application/json"
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            print("📤 Sending sync request...")
+            response = await client.post(
+                f"{base_url}/api/v1/sync/devices",
+                json=payload,
+                headers=headers
+            )
+
+            print(f"📥 Response: HTTP {response.status_code}")
+            print()
+
+            if response.status_code == 200:
+                data = response.json()
+                print("✅ Sync successful!")
+                print()
+                print("Sync Results:")
+                print(f"  • Hub ID: {data['hub_id']}")
+                print(f"  • Devices discovered: {data['devices_discovered']}")
+                print(f"  • Devices added: {data['devices_added']}")
+                print(f"  • Devices updated: {data['devices_updated']}")
+                print(f"  • Devices removed: {data['devices_removed']}")
+                print(f"  • Sync started: {data['sync_started_at']}")
+                print(f"  • Sync completed: {data['sync_completed_at']}")
+                print()
+                return True
+            else:
+                print("❌ Sync failed!")
+                print(f"Error: {response.text}")
+                return False
+
+        except Exception as e:
+            print(f"❌ Request failed: {e}")
+            return False
+
+
+async def verify_devices_in_database(hub_id: str):
+    """Query database to verify devices were created"""
+    print("=" * 70)
+    print("🔍 Verifying Devices in Database")
+    print("=" * 70)
+    print()
+
+    async with AsyncSessionLocal() as session:
+        # Query devices synced from this hub
+        result = await session.execute(
+            f"""
+            SELECT
+                home_assistant_entity_id,
+                device_name,
+                device_type,
+                ha_state,
+                last_synced_at
+            FROM smart_devices
+            WHERE synced_from_hub_id = '{hub_id}'
+            ORDER BY device_name
+            """
+        )
+        devices = result.all()
+
+        if not devices:
+            print("⚠️  No devices found in database for this hub")
+            print("This might be normal if this is the first sync and it hasn't propagated yet.")
+            return
+
+        print(f"Found {len(devices)} devices synced from this hub:")
+        print()
+
+        for device in devices:
+            entity_id, name, dtype, state, synced_at = device
+            synced_time = synced_at.strftime("%Y-%m-%d %H:%M:%S") if synced_at else "Never"
+            print(f"  ✓ {name}")
+            print(f"     Entity: {entity_id}")
+            print(f"     Type: {dtype}")
+            print(f"     State: {state}")
+            print(f"     Last synced: {synced_time}")
+            print()
+
+
+async def main():
+    parser = argparse.ArgumentParser(description='Test Tier 0 device sync')
+    parser.add_argument('--hub-id', type=str, help='Tier 0 node UUID')
+    parser.add_argument('--find-first', action='store_true', help='Find and use first Tier 0 node')
+    parser.add_argument('--base-url', type=str, default='http://localhost:8000',
+                       help='Master Hub base URL (default: http://localhost:8000)')
+
+    args = parser.parse_args()
+
+    hub_id = args.hub_id
+    hostname = None
+
+    if args.find_first:
+        print("🔍 Looking for first Tier 0 node...")
+        hub_id, hostname = await find_first_tier0_node()
+        if not hub_id:
+            print("❌ No Tier 0 nodes found in database")
+            print("Please register a Tier 0 node first using register_tier0_instances.py")
+            return
+        print(f"✅ Found Tier 0 node: {hostname} ({hub_id})")
+        print()
+
+    if not hub_id:
+        print("❌ Error: No hub-id specified")
+        print("Usage: python test_tier0_sync.py --hub-id <uuid>")
+        print("   or: python test_tier0_sync.py --find-first")
+        return
+
+    # Validate UUID format
+    try:
+        uuid.UUID(hub_id)
+    except ValueError:
+        print(f"❌ Invalid UUID format: {hub_id}")
+        return
+
+    # Send sync request
+    success = await send_sync_request(hub_id, args.base_url)
+
+    if success:
+        # Wait a moment for database commit
+        print("⏳ Waiting 2 seconds for database commit...")
+        await asyncio.sleep(2)
+
+        # Verify in database
+        await verify_devices_in_database(hub_id)
+
+        print("=" * 70)
+        print("🎉 Test complete!")
+        print("=" * 70)
+        print()
+        print("Next steps:")
+        print("1. Visit https://property.home.lan")
+        print("2. Navigate to Edge Nodes → Tier 0 filter")
+        print("3. Click on the node to see synced devices")
+        print("4. Or go to Smart Devices to see all synced devices")
+        print()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

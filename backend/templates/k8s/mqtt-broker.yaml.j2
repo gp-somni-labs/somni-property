@@ -1,0 +1,120 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ namespace }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: emqx-data
+  namespace: {{ namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: {{ storage_class | default('local-path') }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emqx
+  namespace: {{ namespace }}
+  labels:
+    app: emqx
+    managed-by: somniproperty
+    client-id: "{{ client_id }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emqx
+  template:
+    metadata:
+      labels:
+        app: emqx
+    spec:
+      containers:
+      - name: emqx
+        image: emqx/emqx:latest
+        ports:
+        - containerPort: 1883
+          name: mqtt
+        - containerPort: 8883
+          name: mqtts
+        - containerPort: 18083
+          name: dashboard
+        - containerPort: 8083
+          name: ws
+        - containerPort: 8084
+          name: wss
+        env:
+        - name: EMQX_NAME
+          value: "{{ client_id }}"
+        - name: EMQX_HOST
+          value: "127.0.0.1"
+        volumeMounts:
+        - name: data
+          mountPath: /opt/emqx/data
+        resources:
+          requests:
+            cpu: {{ cpu_request | default('200m') }}
+            memory: {{ memory_request | default('512Mi') }}
+          limits:
+            cpu: {{ cpu_limit | default('1000m') }}
+            memory: {{ memory_limit | default('1Gi') }}
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: emqx-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mqtt-broker
+  namespace: {{ namespace }}
+spec:
+  selector:
+    app: emqx
+  ports:
+  - name: mqtt
+    port: 1883
+    targetPort: 1883
+  - name: mqtts
+    port: 8883
+    targetPort: 8883
+  - name: dashboard
+    port: 18083
+    targetPort: 18083
+  - name: ws
+    port: 8083
+    targetPort: 8083
+  - name: wss
+    port: 8084
+    targetPort: 8084
+{% if ingress_enabled %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: emqx-dashboard
+  namespace: {{ namespace }}
+  annotations:
+    {% for key, value in ingress_annotations.items() %}
+    {{ key }}: "{{ value }}"
+    {% endfor %}
+spec:
+  rules:
+  - host: {{ ingress_hostname | default('mqtt.' + client_domain) }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: mqtt-broker
+            port:
+              number: 18083
+{% endif %}

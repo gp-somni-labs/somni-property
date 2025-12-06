@@ -1,0 +1,199 @@
+{
+  "labor_templates": [
+    {
+      "template_name": "Smart Lock Installation",
+      "template_code": "INSTALL_LOCK",
+      "category": "Installation",
+      "description": "Physical installation of smart locks including mounting, wiring (if applicable), pairing with hub, and initial configuration.",
+      "detailed_scope": "Complete smart lock installation including:\n- Site survey and door assessment\n- Remove existing deadbolt/lock\n- Install smart lock with proper mounting\n- Wire power supply (if hardwired model)\n- Pair with hub/controller\n- Configure access codes and settings\n- Test lock/unlock functionality\n- Install batteries and test backup\n- Customer demonstration",
+      "base_hours": 1.5,
+      "hourly_rate": 85.00,
+      "additional_hours_per_unit": 0.75,
+      "efficiency_factor": 1.0,
+      "applicable_product_categories": ["smart_lock", "door_lock"],
+      "applicable_domains": ["access_control", "security"],
+      "required_skills": ["general_installation", "basic_electrical"],
+      "typical_materials": [
+        {"name": "Mounting screws", "unit": "set", "qty_per_unit": 1},
+        {"name": "Wire nuts", "unit": "ea", "qty_per_unit": 2}
+      ],
+      "auto_include": true,
+      "auto_include_conditions": {
+        "product_category_matches": ["smart_lock"]
+      },
+      "active": true
+    },
+    {
+      "template_name": "Smart Thermostat Installation",
+      "template_code": "INSTALL_THERMOSTAT",
+      "category": "Installation",
+      "description": "Installation of smart thermostats including removal of old thermostat, wiring verification, mounting, network pairing, and HVAC system testing.",
+      "detailed_scope": "Complete smart thermostat installation including:\n- Turn off HVAC power\n- Remove existing thermostat\n- Verify and label wiring\n- Install mounting plate\n- Run additional wiring if needed (C-wire)\n- Install thermostat\n- Connect to Wi-Fi\n- Pair with smart home hub\n- Configure HVAC settings\n- Test heating/cooling cycles\n- Set up schedules\n- Customer training",
+      "base_hours": 1.0,
+      "hourly_rate": 95.00,
+      "additional_hours_per_unit": 0.5,
+      "efficiency_factor": 1.0,
+      "applicable_product_categories": ["thermostat", "smart_thermostat"],
+      "applicable_domains": ["climate_control", "energy_management"],
+      "required_skills": ["hvac_basic", "networking"],
+      "typical_materials": [
+        {"name": "Wire (18/5)", "unit": "ft", "qty_per_unit": 25},
+        {"name": "Mounting plate", "unit": "ea", "qty_per_unit": 1}
+      ],
+      "auto_include": true,
+      "auto_include_conditions": {
+        "product_category_matches": ["thermostat"]
+      },
+      "active": true
+    },
+    {
+      "template_name": "Hub/Controller Setup",
+      "template_code": "INSTALL_HUB",
+      "category": "Configuration",
+      "description": "Setup and configuration of central hub/controller including network connection, firmware updates, and initial device pairing.",
+      "detailed_scope": "Complete hub/controller setup including:\n- Unbox and inspect hub\n- Connect to network (Ethernet preferred)\n- Mount hub in optimal location\n- Power on and initialize\n- Apply firmware updates\n- Create admin account\n- Configure network settings\n- Setup remote access\n- Configure security settings\n- Initial device discovery\n- Backup configuration\n- Documentation",
+      "base_hours": 2.0,
+      "hourly_rate": 100.00,
+      "additional_hours_per_unit": 1.0,
+      "efficiency_factor": 1.0,
+      "applicable_product_categories": ["hub", "controller", "gateway"],
+      "applicable_domains": ["system_integration"],
+      "required_skills": ["networking", "system_administration"],
+      "typical_materials": [
+        {"name": "CAT6 cable", "unit": "ft", "qty_per_unit": 50},
+        {"name": "Ethernet keystone", "unit": "ea", "qty_per_unit": 1},
+        {"name": "Mounting bracket", "unit": "ea", "qty_per_unit": 1}
+      ],
+      "auto_include": true,
+      "auto_include_conditions": {
+        "product_category_matches": ["hub", "controller"]
+      },
+      "active": true
+    },
+    {
+      "template_name": "Security Camera Installation",
+      "template_code": "INSTALL_CAMERA",
+      "category": "Installation",
+      "description": "Installation of security cameras including mounting, cable running, network configuration, and recording setup.",
+      "detailed_scope": "Complete security camera installation including:\n- Site survey for optimal placement\n- Run CAT6 cable from camera to switch/NVR\n- Mount camera with weather-resistant hardware\n- Connect power (PoE or power adapter)\n- Configure IP address and network\n- Adjust viewing angle and focus\n- Configure motion detection zones\n- Setup recording schedules\n- Integrate with NVR or cloud storage\n- Test video quality day/night\n- Configure alerts\n- Customer demonstration",
+      "base_hours": 1.5,
+      "hourly_rate": 90.00,
+      "additional_hours_per_unit": 0.75,
+      "efficiency_factor": 1.0,
+      "applicable_product_categories": ["camera", "security_camera", "ip_camera"],
+      "applicable_domains": ["security", "surveillance"],
+      "required_skills": ["networking", "low_voltage", "camera_installation"],
+      "typical_materials": [
+        {"name": "CAT6 cable", "unit": "ft", "qty_per_unit": 75},
+        {"name": "Mounting bracket", "unit": "ea", "qty_per_unit": 1},
+        {"name": "Weatherproof box", "unit": "ea", "qty_per_unit": 1}
+      ],
+      "auto_include": true,
+      "auto_include_conditions": {
+        "product_category_matches": ["camera"]
+      },
+      "active": true
+    },
+    {
+      "template_name": "Smart Switch/Dimmer Installation",
+      "template_code": "INSTALL_SWITCH",
+      "category": "Installation",
+      "description": "Installation of smart switches and dimmers including electrical wiring, mounting, and configuration.",
+      "detailed_scope": "Complete smart switch installation including:\n- Turn off circuit breaker\n- Remove existing switch\n- Test for power (safety)\n- Verify neutral wire availability\n- Install smart switch\n- Connect wiring per diagram\n- Secure in wall box\n- Install wall plate\n- Restore power and test\n- Pair with hub\n- Configure scenes/automation\n- Test dimming (if applicable)\n- Customer training",
+      "base_hours": 0.75,
+      "hourly_rate": 95.00,
+      "additional_hours_per_unit": 0.35,
+      "efficiency_factor": 1.0,
+      "applicable_product_categories": ["switch", "dimmer", "smart_switch"],
+      "applicable_domains": ["lighting_control"],
+      "required_skills": ["electrical", "smart_home"],
+      "required_certifications": ["electrician_license"],
+      "typical_materials": [
+        {"name": "Wire nuts", "unit": "ea", "qty_per_unit": 3},
+        {"name": "Wall plate", "unit": "ea", "qty_per_unit": 1}
+      ],
+      "auto_include": true,
+      "auto_include_conditions": {
+        "product_category_matches": ["switch", "dimmer"]
+      },
+      "active": true
+    },
+    {
+      "template_name": "Network Configuration",
+      "template_code": "CONFIG_NETWORK",
+      "category": "Configuration",
+      "description": "Network setup and optimization for smart home devices including Wi-Fi configuration, VLAN setup, and quality of service.",
+      "detailed_scope": "Complete network configuration including:\n- Assess existing network infrastructure\n- Configure dedicated IoT VLAN (if applicable)\n- Setup guest network isolation\n- Configure QoS for smart home traffic\n- Optimize Wi-Fi channels\n- Setup static IP reservations\n- Configure DNS settings\n- Setup network monitoring\n- Document network topology\n- Create network diagram\n- Test connectivity from all areas\n- Security hardening",
+      "base_hours": 3.0,
+      "hourly_rate": 110.00,
+      "additional_hours_per_unit": 0.0,
+      "efficiency_factor": 1.0,
+      "applicable_product_categories": ["network"],
+      "applicable_domains": ["networking", "infrastructure"],
+      "required_skills": ["networking", "security", "system_administration"],
+      "auto_include": false,
+      "active": true
+    },
+    {
+      "template_name": "System Testing & Commissioning",
+      "template_code": "TESTING",
+      "category": "Testing",
+      "description": "Comprehensive testing of all devices, automations, and integrations before customer handoff.",
+      "detailed_scope": "Complete system testing including:\n- Test each device individually\n- Verify network connectivity\n- Test local and remote control\n- Verify status reporting\n- Test automation rules\n- Verify triggers and actions\n- Test schedules and timers\n- Verify scene functionality\n- Test device-to-device interactions\n- Test mobile app functionality\n- Verify cloud connectivity\n- Measure response times\n- Document test results\n- Create punch list\n- Resolve outstanding issues",
+      "base_hours": 2.0,
+      "hourly_rate": 75.00,
+      "additional_hours_per_unit": 0.0,
+      "efficiency_factor": 1.0,
+      "applicable_product_categories": [],
+      "applicable_domains": [],
+      "required_skills": ["testing", "qa"],
+      "auto_include": true,
+      "auto_include_conditions": {
+        "minimum_devices": 5
+      },
+      "active": true
+    },
+    {
+      "template_name": "Customer Training",
+      "template_code": "TRAINING",
+      "category": "Training",
+      "description": "Comprehensive customer training on system operation, mobile app usage, and basic troubleshooting.",
+      "detailed_scope": "Complete customer training including:\n- System overview and capabilities\n- Device operation demonstration\n- Mobile app walkthrough\n- Creating and editing automations\n- Using scenes and modes\n- Setting schedules\n- Configuring notifications\n- Voice control (if applicable)\n- Basic troubleshooting\n- How to restart devices\n- When to call for support\n- Provide user manuals\n- Create quick reference guide\n- Review warranty and maintenance",
+      "base_hours": 1.5,
+      "hourly_rate": 65.00,
+      "additional_hours_per_unit": 0.0,
+      "efficiency_factor": 1.0,
+      "applicable_product_categories": [],
+      "applicable_domains": [],
+      "required_skills": ["training", "customer_service"],
+      "typical_materials": [
+        {"name": "Printed user manual", "unit": "ea", "qty_per_unit": 1},
+        {"name": "Quick reference cards", "unit": "ea", "qty_per_unit": 5}
+      ],
+      "auto_include": true,
+      "auto_include_conditions": {
+        "minimum_devices": 10
+      },
+      "active": true
+    },
+    {
+      "template_name": "Project Management",
+      "template_code": "PROJECT_MGMT",
+      "category": "Project Management",
+      "description": "Project management overhead for coordinating installation, managing subcontractors, and customer communication.",
+      "detailed_scope": "Project management services including:\n- Initial project planning\n- Schedule coordination\n- Material procurement\n- Subcontractor management\n- Customer communication\n- Change order processing\n- Quality assurance\n- Issue resolution\n- Documentation\n- Final walkthrough\n- Post-installation follow-up",
+      "base_hours": 4.0,
+      "hourly_rate": 125.00,
+      "additional_hours_per_unit": 0.0,
+      "efficiency_factor": 1.0,
+      "applicable_product_categories": [],
+      "applicable_domains": [],
+      "required_skills": ["project_management", "customer_service"],
+      "auto_include": true,
+      "auto_include_conditions": {
+        "minimum_devices": 20
+      },
+      "active": true
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ namespace }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zigbee2mqtt-data
+  namespace: {{ namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: {{ storage_class | default('local-path') }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zigbee2mqtt
+  namespace: {{ namespace }}
+  labels:
+    app: zigbee2mqtt
+    managed-by: somniproperty
+    client-id: "{{ client_id }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zigbee2mqtt
+  template:
+    metadata:
+      labels:
+        app: zigbee2mqtt
+    spec:
+      containers:
+      - name: zigbee2mqtt
+        image: koenkk/zigbee2mqtt:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: TZ
+          value: "{{ timezone | default('America/New_York') }}"
+        - name: ZIGBEE2MQTT_CONFIG_MQTT_SERVER
+          value: "mqtt://{{ mqtt_host | default('mqtt-broker.iot.svc.cluster.local') }}:{{ mqtt_port | default('1883') }}"
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        {% if usb_device_path %}
+        - name: usb-device
+          mountPath: {{ usb_device_path }}
+        {% endif %}
+        resources:
+          requests:
+            cpu: {{ cpu_request | default('100m') }}
+            memory: {{ memory_request | default('256Mi') }}
+          limits:
+            cpu: {{ cpu_limit | default('500m') }}
+            memory: {{ memory_limit | default('512Mi') }}
+        securityContext:
+          privileged: {{ privileged | default('true') }}
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: zigbee2mqtt-data
+      {% if usb_device_path %}
+      - name: usb-device
+        hostPath:
+          path: {{ usb_device_path }}
+          type: CharDevice
+      {% endif %}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zigbee2mqtt
+  namespace: {{ namespace }}
+spec:
+  selector:
+    app: zigbee2mqtt
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+{% if ingress_enabled %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zigbee2mqtt
+  namespace: {{ namespace }}
+  annotations:
+    {% for key, value in ingress_annotations.items() %}
+    {{ key }}: "{{ value }}"
+    {% endfor %}
+spec:
+  rules:
+  - host: {{ ingress_hostname | default('zigbee2mqtt.' + client_domain) }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: zigbee2mqtt
+            port:
+              number: 8080
+{% endif %}

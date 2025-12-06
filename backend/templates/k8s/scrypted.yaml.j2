@@ -1,0 +1,100 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ namespace }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: scrypted-data
+  namespace: {{ namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ storage_size | default('50Gi') }}
+  storageClassName: {{ storage_class | default('local-path') }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scrypted
+  namespace: {{ namespace }}
+  labels:
+    app: scrypted
+    managed-by: somniproperty
+    client-id: "{{ client_id }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: scrypted
+  template:
+    metadata:
+      labels:
+        app: scrypted
+    spec:
+      containers:
+      - name: scrypted
+        image: koush/scrypted:latest
+        ports:
+        - containerPort: 11080
+          name: http
+        - containerPort: 10443
+          name: https
+        volumeMounts:
+        - name: data
+          mountPath: /server/volume
+        resources:
+          requests:
+            cpu: {{ cpu_request | default('500m') }}
+            memory: {{ memory_request | default('1Gi') }}
+          limits:
+            cpu: {{ cpu_limit | default('2000m') }}
+            memory: {{ memory_limit | default('2Gi') }}
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: scrypted-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: scrypted
+  namespace: {{ namespace }}
+spec:
+  selector:
+    app: scrypted
+  ports:
+  - name: http
+    port: 11080
+    targetPort: 11080
+  - name: https
+    port: 10443
+    targetPort: 10443
+{% if ingress_enabled %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: scrypted
+  namespace: {{ namespace }}
+  annotations:
+    {% for key, value in ingress_annotations.items() %}
+    {{ key }}: "{{ value }}"
+    {% endfor %}
+spec:
+  rules:
+  - host: {{ ingress_hostname | default('scrypted.' + client_domain) }}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: scrypted
+            port:
+              number: 11080
+{% endif %}

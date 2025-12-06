@@ -6,11 +6,11 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API Configuration - SomniProperty Backend
-  // Tailscale VPN endpoint (primary) - MUST use HTTPS to avoid mixed content errors
+  // LAN endpoint (primary for development)
+  static const String localBaseUrl = 'https://somniproperty.home.lan';
+  // Tailscale VPN endpoint - MUST use HTTPS to avoid mixed content errors
   static const String tailscaleBaseUrl =
       'https://property.tail58c8e4.ts.net';
-  // LAN endpoint (for on-site use)
-  static const String localBaseUrl = 'https://property.home.lan';
   // Public endpoint (fallback)
   static const String publicBaseUrl = 'https://property.somni-labs.tech';
 

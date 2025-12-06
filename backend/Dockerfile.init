@@ -1,0 +1,19 @@
+# Database Initialization Container for SomniProperty
+# This container runs before the backend to ensure database schema is initialized
+FROM postgres:16-alpine
+
+# Install bash for the init script
+RUN apk add --no-cache bash
+
+# Copy schema files from parent directory
+COPY DATABASE-SCHEMA*.sql /app/schema/
+
+# Copy initialization script from backend directory
+COPY backend/init-database.sh /app/init-database.sh
+RUN chmod +x /app/init-database.sh
+
+# Set working directory
+WORKDIR /app
+
+# Run the initialization script
+CMD ["/app/init-database.sh"]

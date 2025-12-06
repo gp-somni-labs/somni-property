@@ -7,6 +7,18 @@ import 'package:somni_property/features/dashboard/presentation/pages/dashboard_p
 import 'package:somni_property/features/properties/presentation/pages/properties_list_page.dart';
 import 'package:somni_property/features/properties/presentation/pages/property_detail_page.dart';
 import 'package:somni_property/features/properties/presentation/pages/property_form_page.dart';
+import 'package:somni_property/features/tenants/presentation/pages/tenants_list_page.dart';
+import 'package:somni_property/features/tenants/presentation/pages/tenant_detail_page.dart';
+import 'package:somni_property/features/tenants/presentation/pages/tenant_form_page.dart';
+import 'package:somni_property/features/leases/presentation/pages/leases_list_page.dart';
+import 'package:somni_property/features/leases/presentation/pages/lease_detail_page.dart';
+import 'package:somni_property/features/leases/presentation/pages/lease_form_page.dart';
+import 'package:somni_property/features/payments/presentation/pages/payments_list_page.dart';
+import 'package:somni_property/features/payments/presentation/pages/payment_detail_page.dart';
+import 'package:somni_property/features/payments/presentation/pages/payment_form_page.dart';
+import 'package:somni_property/features/work_orders/presentation/pages/work_orders_list_page.dart';
+import 'package:somni_property/features/work_orders/presentation/pages/work_order_detail_page.dart';
+import 'package:somni_property/features/work_orders/presentation/pages/work_order_form_page.dart';
 
 /// Router provider for web-compatible navigation
 final routerProvider = Provider<GoRouter>((ref) {
@@ -94,21 +106,140 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/tenants',
             name: 'tenants',
-            builder: (context, state) => const TenantsPlaceholderPage(),
+            builder: (context, state) => const TenantsListPage(),
+            routes: [
+              // New Tenant
+              GoRoute(
+                path: 'new',
+                name: 'tenantNew',
+                builder: (context, state) => const TenantFormPage(),
+              ),
+              // Tenant Detail
+              GoRoute(
+                path: ':id',
+                name: 'tenantDetail',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return TenantDetailPage(tenantId: id);
+                },
+                routes: [
+                  // Edit Tenant
+                  GoRoute(
+                    path: 'edit',
+                    name: 'tenantEdit',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return TenantFormPage(tenantId: id);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
 
           // Leases
           GoRoute(
             path: '/leases',
             name: 'leases',
-            builder: (context, state) => const LeasesPlaceholderPage(),
+            builder: (context, state) => const LeasesListPage(),
+            routes: [
+              // New Lease
+              GoRoute(
+                path: 'new',
+                name: 'leaseNew',
+                builder: (context, state) => const LeaseFormPage(),
+              ),
+              // Lease Detail
+              GoRoute(
+                path: ':id',
+                name: 'leaseDetail',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return LeaseDetailPage(leaseId: id);
+                },
+                routes: [
+                  // Edit Lease
+                  GoRoute(
+                    path: 'edit',
+                    name: 'leaseEdit',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return LeaseFormPage(leaseId: id);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
 
-          // Maintenance
+          // Payments
+          GoRoute(
+            path: '/payments',
+            name: 'payments',
+            builder: (context, state) => const PaymentsListPage(),
+            routes: [
+              // New Payment
+              GoRoute(
+                path: 'new',
+                name: 'paymentNew',
+                builder: (context, state) => const PaymentFormPage(),
+              ),
+              // Payment Detail
+              GoRoute(
+                path: ':id',
+                name: 'paymentDetail',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return PaymentDetailPage(paymentId: id);
+                },
+                routes: [
+                  // Edit Payment
+                  GoRoute(
+                    path: 'edit',
+                    name: 'paymentEdit',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return PaymentFormPage(paymentId: id);
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // Maintenance (Work Orders)
           GoRoute(
             path: '/maintenance',
             name: 'maintenance',
-            builder: (context, state) => const MaintenancePlaceholderPage(),
+            builder: (context, state) => const WorkOrdersListPage(),
+            routes: [
+              // New Work Order
+              GoRoute(
+                path: 'new',
+                name: 'maintenanceNew',
+                builder: (context, state) => const WorkOrderFormPage(),
+              ),
+              // Work Order Detail
+              GoRoute(
+                path: ':id',
+                name: 'maintenanceDetail',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return WorkOrderDetailPage(workOrderId: id);
+                },
+                routes: [
+                  // Edit Work Order
+                  GoRoute(
+                    path: 'edit',
+                    name: 'maintenanceEdit',
+                    builder: (context, state) {
+                      final id = state.pathParameters['id']!;
+                      return WorkOrderFormPage(workOrderId: id);
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
 
           // Settings
@@ -272,42 +403,6 @@ class AppShell extends ConsumerWidget {
 }
 
 // Placeholder pages - to be implemented
-
-class TenantsPlaceholderPage extends StatelessWidget {
-  const TenantsPlaceholderPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Tenants')),
-      body: const Center(child: Text('Tenants list coming soon')),
-    );
-  }
-}
-
-class LeasesPlaceholderPage extends StatelessWidget {
-  const LeasesPlaceholderPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Leases')),
-      body: const Center(child: Text('Leases list coming soon')),
-    );
-  }
-}
-
-class MaintenancePlaceholderPage extends StatelessWidget {
-  const MaintenancePlaceholderPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Maintenance')),
-      body: const Center(child: Text('Maintenance requests coming soon')),
-    );
-  }
-}
 
 class SettingsPlaceholderPage extends StatelessWidget {
   const SettingsPlaceholderPage({super.key});
